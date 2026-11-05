@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
-title: "cyberfly: a computer compiled into the brain of a fruit fly"
+title: "Cyberfly: a RISC-V computer in a fruit fly brain"
 authors:
   - family-names: Wirth
     given-names: Bodo

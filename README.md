@@ -161,20 +161,19 @@ tests/       neurons, fpu, gpu, radio, learning
 
 ## Citing
 
-If you use Cyberfly in your work, please cite it. GitHub's "Cite this repository" button reads [CITATION.cff](CITATION.cff); in BibTeX:
+Please cite Cyberfly as
 
 ```bibtex
-@software{wirth2026cyberfly,
+@software{cyberfly2026,
   author  = {Wirth, Bodo and Kannan, Naveen},
-  title   = {{cyberfly}: a computer compiled into the brain of a fruit fly},
+  title   = {Cyberfly: a RISC-V computer in a fruit fly brain},
   year    = {2026},
   version = {0.1.0},
-  url     = {https://github.com/bodow1/cyberfly},
-  license = {MIT}
+  url     = {https://github.com/bodow1/cyberfly}
 }
 ```
 
-Upstream work:
+Cyberfly builds on the following work.
 
 - Shiu, P. K. et al. A *Drosophila* computational brain model reveals sensorimotor processing. *Nature* 634, 210–219 (2024).
 - Dorkenwald, S. et al. Neuronal wiring diagram of an adult brain. *Nature* 634, 124–138 (2024).
@@ -190,4 +189,4 @@ Upstream work:
 
 ## License
 
-The code is MIT. The FlyWire connectome is downloaded rather than included and is subject to the [FlyWire terms](https://codex.flywire.ai/about_flywire).
+Cyberfly is released under the MIT License, see [LICENSE](LICENSE). The FlyWire connectome is not part of this repository. `cyberfly.connectome` downloads it, and its use is governed by the [FlyWire terms](https://codex.flywire.ai/about_flywire).

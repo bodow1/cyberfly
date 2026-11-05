@@ -60,7 +60,7 @@ def nor_figure():
     cases = [(0, 0), (1, 0), (0, 1), (1, 1)]
     W, H = 1600, 460
     img, d = canvas(W, H)
-    small, label = font(MONO, 13), font(MONO, 15)
+    small, label = font(MONO, 20), font(MONO, 22)
     pw = (W - 80 - 3 * 30) / 4
     for n, bits in enumerate(cases):
         c = Circuit(20)
@@ -93,16 +93,16 @@ def nor_figure():
         d.text((x0 * S, (y0 - 34) * S), f"A={bits[0]}  B={bits[1]}", font=label, fill=FG)
         d.text(((x0 + ph) * S, (y0 - 34) * S), "fires" if fired else "silent", font=label,
                fill=ACCENT if fired else FG3, anchor="ra")
-    d.text((40 * S, 30 * S), "membrane voltage (mV) of one NOR neuron over four phases, for each input case", font=small, fill=FG2)
+    d.text((40 * S, 12 * S), "membrane voltage (mV) of one NOR neuron over four phases, for each input case", font=small, fill=FG2)
     y = 90 + 230 + 60
     d.polygon([(40 * S, y * S), (34 * S, (y + 12) * S), (46 * S, (y + 12) * S)], fill=FG2)
     d.text((54 * S, (y - 2) * S), "clock spike (+242)", font=small, fill=FG2)
-    d.polygon([(260 * S, y * S), (254 * S, (y + 12) * S), (266 * S, (y + 12) * S)], fill=BLUE)
-    d.text((274 * S, (y - 2) * S), "input spike (−242)", font=small, fill=FG2)
-    d.line((480 * S, (y + 6) * S, 510 * S, (y + 6) * S), fill=LINE, width=S)
-    d.text((520 * S, (y - 2) * S), "threshold −45 mV", font=small, fill=FG2)
-    d.line((720 * S, y * S, 720 * S, (y + 14) * S), fill=ACCENT, width=2 * S)
-    d.text((730 * S, (y - 2) * S), "output spike", font=small, fill=FG2)
+    d.polygon([(400 * S, y * S), (394 * S, (y + 12) * S), (406 * S, (y + 12) * S)], fill=BLUE)
+    d.text((414 * S, (y - 2) * S), "input spike (−242)", font=small, fill=FG2)
+    d.line((760 * S, (y + 6) * S, 790 * S, (y + 6) * S), fill=LINE, width=S)
+    d.text((800 * S, (y - 2) * S), "threshold −45 mV", font=small, fill=FG2)
+    d.line((1080 * S, y * S, 1080 * S, (y + 14) * S), fill=ACCENT, width=2 * S)
+    d.text((1090 * S, (y - 2) * S), "output spike", font=small, fill=FG2)
     save(img, "fig_nor.png")
 
 
@@ -136,7 +136,7 @@ def clock_figure():
     _, spikes = trace(c, [c.ring[0]], t1)
     W, H = 1600, 440
     img, d = canvas(W, H)
-    small = font(MONO, 13)
+    small = font(MONO, 20)
     box = (110, 70, W - 160, 280)
     raster(d, c.ring, spikes, 0, t1, box, [f"R{k}" for k in range(12)], [FG] * 12, small)
     phase_axis(d, 0, t1, box, p, small, every=2)
@@ -162,7 +162,7 @@ def latch_figure():
     _, spikes = trace(c, [a], t1, kicks)
     W, H = 1600, 300
     img, d = canvas(W, H)
-    small = font(MONO, 13)
+    small = font(MONO, 20)
     box = (110, 60, W - 160, 170)
     raster(d, [s, r, a, b], spikes, 0, t1, box, ["set", "reset", "A (1)", "B (0)"], [BLUE, BLUE, ACCENT, FG], small)
     phase_axis(d, 0, t1, box, p, small, every=2)
@@ -174,7 +174,7 @@ def latch_figure():
 def system_figure():
     W, H = 1600, 520
     img, d = canvas(W, H)
-    small, name = font(MONO, 13), font(DISPLAY, 19)
+    small, name = font(MONO, 20), font(DISPLAY, 26)
 
     def node(x, y, w, h, title, sub, hot=False, fill=PANEL):
         d.rounded_rectangle((x * S, y * S, (x + w) * S, (y + h) * S), radius=8 * S, fill=fill,
@@ -198,18 +198,18 @@ def system_figure():
 
     d.rounded_rectangle((260 * S, 40 * S, 1340 * S, 480 * S), radius=14 * S, outline=LINE, width=S)
     d.text((280 * S, 58 * S), "fly brain: 138,639 neurons", font=small, fill=FG3)
-    node(620, 90, 360, 110, "FPU + GPU", "added neurons, same LIF model", hot=True)
+    node(600, 90, 400, 110, "FPU + GPU", "added LIF neurons", hot=True)
     node(300, 330, 260, 90, "LC10c · LC4", "visual neurons")
     node(1040, 330, 260, 90, "DNa02 · DNp01", "descending neurons")
     node(670, 330, 260, 90, "rest of the brain", "existing synapses", fill=GROUND)
-    node(40, 330, 180, 90, "eyes", "2 × 721 ommatidia")
+    node(20, 330, 220, 90, "eyes", "2 × 721 facets")
     node(1380, 330, 180, 90, "legs", "FlyGym")
-    arrow([(220, 375), (300, 375)])
+    arrow([(240, 375), (300, 375)])
     arrow([(560, 375), (670, 375)])
     arrow([(930, 375), (1040, 375)])
     arrow([(1300, 375), (1380, 375)], "turn")
-    arrow([(700, 200), (700, 260), (430, 260), (430, 330)], "output bits drive follower neurons", hot=True, seg=1)
-    arrow([(1170, 330), (1170, 260), (900, 260), (900, 200)], "capture neurons set input bits", hot=True, seg=1)
+    arrow([(700, 200), (700, 260), (430, 260), (430, 330)], "output bits", hot=True, seg=1)
+    arrow([(1170, 330), (1170, 260), (900, 260), (900, 200)], "input bits", hot=True, seg=1)
     save(img, "fig_system.png")
 
 
