@@ -1,0 +1,343 @@
+{
+  "model": "RV32I instruction-set simulator, two FPU cycles per instruction",
+  "source": "firmware/boot.c and cyberfly.llm (fixed offline square)",
+  "compiler": "clang version 19.1.7",
+  "actions": [
+    {
+      "act": "straight",
+      "units": 2
+    },
+    {
+      "act": "left",
+      "units": 3
+    },
+    {
+      "act": "straight",
+      "units": 2
+    },
+    {
+      "act": "left",
+      "units": 3
+    },
+    {
+      "act": "straight",
+      "units": 2
+    },
+    {
+      "act": "left",
+      "units": 3
+    },
+    {
+      "act": "straight",
+      "units": 2
+    },
+    {
+      "act": "stop",
+      "units": 1
+    }
+  ],
+  "boot_first_word": "0x40000113",
+  "request_cycle": 342,
+  "frame_arrival_cycles": [
+    462,
+    586,
+    630,
+    674,
+    736,
+    780,
+    824,
+    886,
+    930,
+    974,
+    1036,
+    1080,
+    1124,
+    1186,
+    1230,
+    1274,
+    1336,
+    1380,
+    1424,
+    1486,
+    1530,
+    1574,
+    1636,
+    1680,
+    1724,
+    1786,
+    1830,
+    1874,
+    1936,
+    1980,
+    2024,
+    2086,
+    2130,
+    2174,
+    2236,
+    2280,
+    2324,
+    2386,
+    2430,
+    2474,
+    2536,
+    2580,
+    2624,
+    2686,
+    2730,
+    2774,
+    2836,
+    2880,
+    2924,
+    2986,
+    3030,
+    3074,
+    3136,
+    3180,
+    3224,
+    3286,
+    3330,
+    3374,
+    3436,
+    3480,
+    3524,
+    3586,
+    3630,
+    3674,
+    3736,
+    3780,
+    3824,
+    3886,
+    3930,
+    3974,
+    4036,
+    4080,
+    4124,
+    4186,
+    4230,
+    4274,
+    4336,
+    4380,
+    4424,
+    4486,
+    4530,
+    4574,
+    4636,
+    4680,
+    4724,
+    4786,
+    4830,
+    4874,
+    4936,
+    4980,
+    5024,
+    5086,
+    5130,
+    5174,
+    5236,
+    5280,
+    5324,
+    5386,
+    5430,
+    5474,
+    5536,
+    5580,
+    5624,
+    5686,
+    5730,
+    5774,
+    5836,
+    5880,
+    5924,
+    5986
+  ],
+  "frame_count": 110,
+  "header": "0x3024",
+  "checksum": "0x129",
+  "writes": [
+    {
+      "cycle": 714,
+      "address": "0x200",
+      "word": "0x800002b7"
+    },
+    {
+      "cycle": 866,
+      "address": "0x204",
+      "word": "0x00c004b7"
+    },
+    {
+      "cycle": 1014,
+      "address": "0x208",
+      "word": "0x00c00937"
+    },
+    {
+      "cycle": 1166,
+      "address": "0x20c",
+      "word": "0x00f90913"
+    },
+    {
+      "cycle": 1314,
+      "address": "0x210",
+      "word": "0x00c009b7"
+    },
+    {
+      "cycle": 1466,
+      "address": "0x214",
+      "word": "0x0f098993"
+    },
+    {
+      "cycle": 1614,
+      "address": "0x218",
+      "word": "0x00c01a37"
+    },
+    {
+      "cycle": 1766,
+      "address": "0x21c",
+      "word": "0xf00a0a13"
+    },
+    {
+      "cycle": 1914,
+      "address": "0x220",
+      "word": "0x0092a023"
+    },
+    {
+      "cycle": 2066,
+      "address": "0x224",
+      "word": "0x00300313"
+    },
+    {
+      "cycle": 2214,
+      "address": "0x228",
+      "word": "0xfff30313"
+    },
+    {
+      "cycle": 2366,
+      "address": "0x22c",
+      "word": "0xfe031ee3"
+    },
+    {
+      "cycle": 2514,
+      "address": "0x230",
+      "word": "0x0122a023"
+    },
+    {
+      "cycle": 2666,
+      "address": "0x234",
+      "word": "0x00000013"
+    },
+    {
+      "cycle": 2814,
+      "address": "0x238",
+      "word": "0x00000013"
+    },
+    {
+      "cycle": 2966,
+      "address": "0x23c",
+      "word": "0x0092a023"
+    },
+    {
+      "cycle": 3114,
+      "address": "0x240",
+      "word": "0x00300313"
+    },
+    {
+      "cycle": 3266,
+      "address": "0x244",
+      "word": "0xfff30313"
+    },
+    {
+      "cycle": 3414,
+      "address": "0x248",
+      "word": "0xfe031ee3"
+    },
+    {
+      "cycle": 3566,
+      "address": "0x24c",
+      "word": "0x0122a023"
+    },
+    {
+      "cycle": 3714,
+      "address": "0x250",
+      "word": "0x00000013"
+    },
+    {
+      "cycle": 3866,
+      "address": "0x254",
+      "word": "0x00000013"
+    },
+    {
+      "cycle": 4014,
+      "address": "0x258",
+      "word": "0x0092a023"
+    },
+    {
+      "cycle": 4166,
+      "address": "0x25c",
+      "word": "0x00300313"
+    },
+    {
+      "cycle": 4314,
+      "address": "0x260",
+      "word": "0xfff30313"
+    },
+    {
+      "cycle": 4466,
+      "address": "0x264",
+      "word": "0xfe031ee3"
+    },
+    {
+      "cycle": 4614,
+      "address": "0x268",
+      "word": "0x0122a023"
+    },
+    {
+      "cycle": 4766,
+      "address": "0x26c",
+      "word": "0x00000013"
+    },
+    {
+      "cycle": 4914,
+      "address": "0x270",
+      "word": "0x00000013"
+    },
+    {
+      "cycle": 5066,
+      "address": "0x274",
+      "word": "0x0092a023"
+    },
+    {
+      "cycle": 5214,
+      "address": "0x278",
+      "word": "0x00300313"
+    },
+    {
+      "cycle": 5366,
+      "address": "0x27c",
+      "word": "0xfff30313"
+    },
+    {
+      "cycle": 5514,
+      "address": "0x280",
+      "word": "0xfe031ee3"
+    },
+    {
+      "cycle": 5666,
+      "address": "0x284",
+      "word": "0x0142a023"
+    },
+    {
+      "cycle": 5814,
+      "address": "0x288",
+      "word": "0x0142a023"
+    },
+    {
+      "cycle": 5966,
+      "address": "0x28c",
+      "word": "0x0000006f"
+    }
+  ],
+  "entry_address": "0x200",
+  "entry_cycle": 6022,
+  "cycles_from_first_frame_to_entry": 5560,
+  "pc_after_entry_instruction": "0x204",
+  "t0_after_entry_instruction": "0x80000000"
+}

@@ -183,7 +183,7 @@ def main(out: Path):
     d = ImageDraw.Draw(base)
     dx = 900 * S
     d.text((40 * S, 30 * S), "CYBERFLY", font=title, fill=FG)
-    d.text((44 * S, 114 * S), "a 32-bit RISC-V computer compiled into the brain of a fruit fly", font=tag, fill=FG2)
+    d.text((44 * S, 114 * S), "a 32-bit RISC-V computer wired into a simulated fruit fly brain", font=tag, fill=FG2)
     block(d, dx, 170 * S, 300 * S, 250 * S, "RAM  256 x 32", small)
     block(d, dx + 330 * S, 170 * S, 140 * S, 140 * S, "REGS  x1-x31", small)
     block(d, dx + 500 * S, 170 * S, 160 * S, 250 * S, "GPU  32 rays", small)
@@ -191,7 +191,7 @@ def main(out: Path):
     d.line((dx - 20 * S, 170 * S, dx - 20 * S, 420 * S), fill=ACCENT, width=S)
     d.rectangle((44 * S, 436 * S, 50 * S, 442 * S), fill=ACCENT)
     d.text((58 * S, 431 * S), "LC4  LC10c  DNa02  DNp01: the fly neurons the FPU talks to", font=small, fill=FG3)
-    stats = "138,639 fly neurons   ·   83,864-neuron FPU   ·   raycasting GPU   ·   0 mismatches"
+    stats = "138,639 fly neurons   ·   83,864-neuron FPU   ·   raycasting GPU"
     d.text((44 * S, 462 * S), stats, font=small, fill=FG3)
 
     frames = []

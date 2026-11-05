@@ -197,8 +197,8 @@ def system_figure():
                    anchor="mm")
 
     d.rounded_rectangle((260 * S, 40 * S, 1340 * S, 480 * S), radius=14 * S, outline=LINE, width=S)
-    d.text((280 * S, 58 * S), "fly brain: 138,639 neurons", font=small, fill=FG3)
-    node(600, 90, 400, 110, "FPU + GPU", "added LIF neurons", hot=True)
+    d.text((280 * S, 58 * S), "native connectome: 138,639 neurons", font=small, fill=FG3)
+    node(600, 90, 400, 110, "FPU + GPU", "186,381 added LIF neurons", hot=True)
     node(300, 330, 260, 90, "LC10c · LC4", "visual neurons")
     node(1040, 330, 260, 90, "DNa02 · DNp01", "descending neurons")
     node(670, 330, 260, 90, "rest of the brain", "existing synapses", fill=GROUND)
