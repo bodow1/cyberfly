@@ -14,7 +14,16 @@ The computer is a 32-bit RISC-V processor, which we call the FPU (Fly Processing
 
 Every Boolean function can be built from NOR gates alone (Sheffer, 1913), so the first thing a computer made of neurons needs is a neuron that acts as a NOR gate. The idea that a threshold neuron can compute logic goes back to McCulloch and Pitts (1943), and networks of spiking neurons were later shown to be able to simulate Turing machines (Maass, 1996). Cyberfly applies this to the LIF model of Shiu et al. with its parameters unchanged.
 
-A gate neuron has two kinds of input. A clock neuron excites it through a synapse of weight +242, and each logic input inhibits it through a synapse of weight −242. In this model one unit of synaptic weight moves the membrane voltage by 0.275 mV, so the clock synapse on its own is strong enough to make the gate fire. The clock neuron and the inputs fire on the phase before the gate's own phase. If none of the inputs fires, the clock spike pushes the gate over threshold and it fires, which the next gates read as a 1. If any input fires, its inhibition cancels the clock spike, the gate stays silent, and the next gates read a 0. A NOT gate is the same neuron with a single input.
+A gate neuron has two kinds of input. The first is a clock neuron, which excites it through a synapse of weight +242. The clock is not a logic input. It is a timing pulse that arrives on every cycle whatever the data is. The second kind are the logic inputs, and each of them inhibits the gate through a synapse of weight −242. In this model one unit of synaptic weight moves the membrane voltage by 0.275 mV, so the clock synapse on its own is strong enough to make the gate fire. The clock neuron and the inputs fire on the phase before the gate's own phase. If none of the inputs fires, the clock spike pushes the gate over threshold and it fires, which the next gates read as a 1. If any input fires, its inhibition cancels the clock spike, the gate stays silent, and the next gates read a 0. For a gate with two logic inputs a and b, this gives the following outputs.
+
+| a | b | gate |
+| :---: | :---: | :---: |
+| 0 | 0 | fires (1) |
+| 1 | 0 | silent (0) |
+| 0 | 1 | silent (0) |
+| 1 | 1 | silent (0) |
+
+This is NOR, whose output is 1 only when no input is 1. A NOT gate is the same neuron with a single input, since NOT a equals NOR(a, a). OR is a NOR followed by a NOT, and AND is a NOR of the two inverted inputs, so every other gate can be built from this one neuron.
 
 <p align="center"><img src="docs/fig_nor.png" width="100%"></p>
 <p align="center"><sub>Voltage of one NOR neuron in the simulator for the four input cases. Only A=0, B=0 reaches threshold.</sub></p>
