@@ -32,18 +32,33 @@ Each gate is given a phase and takes its clock spike from the ring neuron one ph
 
 ### Memory
 
-A gate holds its value for one phase, and a computer has to keep registers and RAM from one cycle to the next. Each stored bit is therefore a pair of neurons, A and B, that inhibit each other. A is driven to fire on every even phase and B on every odd phase, and whichever fired last silences the other, so the pair keeps firing in the same pattern until something interrupts it. A firing pattern on A stands for 1 and one on B stands for 0. A set neuron that inhibits B once hands the rhythm to A, and a reset neuron that inhibits A once hands it back to B.
+A gate holds its value for only one phase, but a computer has to keep its registers and RAM from one cycle to the next, so each stored bit is a latch made of two neurons, A and B, that inhibit each other. This is the set-reset latch of digital electronics built from two NOR gates. A receives a clock spike on every even phase and B on every odd phase, and each fires on its clock spike unless the other fired on the phase before. Once A is firing, it silences B on every odd phase, B never gets to fire, and A keeps firing on every even phase. Once B is firing, the same happens the other way round. Exactly one of the two neurons therefore keeps firing, and which one it is holds the bit, with A firing for 1 and B firing for 0.
+
+Writing a 1 takes a single spike from a set neuron that inhibits B. B misses one phase, A no longer gets silenced, and from then on A fires. Writing a 0 works the same way through a reset neuron that inhibits A. Reading needs no extra machinery, because any gate that needs the bit takes A as one of its inputs, or B when it needs the inverted bit.
 
 <p align="center"><img src="docs/fig_latch.png" width="100%"></p>
-<p align="center"><sub>One stored bit in the simulator. A set spike switches it from 0 to 1, and a reset spike switches it back.</sub></p>
+<p align="center"><sub>One latch in the simulator. B fires while the bit is 0, a set spike switches the firing to A, and a reset spike switches it back.</sub></p>
 
-The FPU's 31 registers, its program counter and its 256 words of 32-bit RAM are all built from these pairs. The RAM alone is 8,192 of them, plus NOR gates that decode the address.
+The FPU's 31 registers, its program counter and its other state use 1,154 of these latches, each with its own set and reset neurons that write the next value at a fixed phase of every cycle. The 1 KiB of RAM is 256 words of 32 bits, or 8,192 latches. Each RAM bit uses four neurons, A, B, a read gate that fires when its word is addressed and the bit is 1, and a write gate that sets the bit. Address-decoder gates turn the 8-bit address into one word line per word. On a read, the read gates of the addressed word drive the 32 data lines. On a write, a clear neuron for the addressed word first resets all 32 of its latches, and the write gates then set the bits that are 1.
 
 ### Compiling the CPU
 
 With gates, a clock and memory, a whole processor can be compiled. The FPU is a RISC-V core for the RV32I instruction set, written in about 160 lines of Verilog, a language for describing digital circuits. Yosys, an open-source synthesis tool, turns the Verilog into a netlist of 16,215 NOR and NOT gates and 1,154 flip-flops. The Cyberfly compiler then assigns each gate a phase after all of its inputs, creates one neuron per gate with its clock and input synapses, creates an A/B pair for each flip-flop with set and reset neurons that write the next value at a fixed phase in each cycle, and builds the RAM. A program is loaded by starting each RAM bit in the A or the B state.
 
-The result is 83,864 neurons. One instruction takes two clock cycles, about 1.29 s of simulated time, and programs are written in C and compiled with clang.
+The result is 83,864 neurons. One instruction takes two clock cycles, about 1.29 s of simulated time, and programs are written in C and compiled with clang. The table below counts where the neurons go, as printed by `docs/budget.py`.
+
+| Part | Neurons |
+| --- | ---: |
+| RAM bits, 8,192 × 4 (A, B, read gate, write gate) | 32,768 |
+| Delay relays and fan-out copies | 26,981 |
+| CPU logic gates, one per gate in the netlist | 16,311 |
+| Registers and other flip-flops, with their set and reset neurons | 4,552 |
+| RAM address decoding and write select | 2,856 |
+| Clock ring, clock copies and oscillators | 299 |
+| Input port | 97 |
+| Total | 83,864 |
+
+The RAM is the largest part, at 35,624 neurons. The CPU core, meaning its gates, delay relays and flip-flops, is 47,844 neurons. Delay relays are needed because a gate's inputs must fire one or two phases before it, so a signal that is used many phases after it was computed is passed along a chain of NOT neurons until its consumer's phase.
 
 ### The GPU
 
