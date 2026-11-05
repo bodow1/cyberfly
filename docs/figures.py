@@ -1,3 +1,4 @@
+import json
 import sys
 from pathlib import Path
 
@@ -21,6 +22,7 @@ BLUE = (110, 160, 220)
 MONO, DISPLAY = sys.argv[1], sys.argv[2]
 LOW = 130
 OUT = Path(__file__).parent
+LEARN = [Path(a) for a in sys.argv[3:]] or [OUT.parent / "runs" / "learn" / "learn.json"]
 
 
 def font(path, size):
@@ -213,8 +215,53 @@ def system_figure():
     save(img, "fig_system.png")
 
 
+def learning_figure():
+    runs = [json.loads(path.read_text())["curve"] for path in LEARN]
+    W, H = 1600, 520
+    img, d = canvas(W, H)
+    small, name = font(MONO, 20), font(DISPLAY, 26)
+    shades = {"arrow": ACCENT, "letter": BLUE, "stone": FG2, "blank": (110, 116, 124), "none": FG3}
+    panels = {"cpu": "MBON09 calls the FPU", "llm": "MBON27 calls the LLM"}
+    for n, (tool, title) in enumerate(panels.items()):
+        curves = [c for c in runs if tool in c[0]]
+        trials = [c["trial"] for c in curves[0]]
+        last = trials[-1] or 1
+        x0, y0, w, h = 90 + n * 790, 110, 560, 320
+        d.text((x0 * S, 36 * S), title, font=name, fill=FG)
+        d.text((x0 * S, 72 * S), f"share of held-out frames with a call, {len(curves)} runs", font=small, fill=FG3)
+        for v in (0, 0.5, 1):
+            y = y0 + (1 - v) * h
+            d.line((x0 * S, y * S, (x0 + w) * S, y * S), fill=LINE, width=S)
+            d.text(((x0 - 12) * S, y * S), f"{v:.1f}", font=small, fill=FG3, anchor="rm")
+        for t in trials:
+            d.text(((x0 + t / last * w) * S, (y0 + h + 14) * S), str(t), font=small, fill=FG3, anchor="ma")
+        d.text(((x0 + w) * S, (y0 + h + 44) * S), "trials", font=small, fill=FG3, anchor="ra")
+        point = lambda t, v: ((x0 + t / last * w) * S, (y0 + (1 - v) * h) * S)
+        labels = []
+        for g, col in reversed(shades.items()):
+            faint = tuple((c + 2 * b) // 3 for c, b in zip(col, GROUND))
+            for c in curves:
+                d.line([point(e["trial"], e[tool][g]) for e in c], fill=faint, width=S)
+            mean = [float(np.mean([c[k][tool][g] for c in curves])) for k in range(len(trials))]
+            pts = [point(t, v) for t, v in zip(trials, mean)]
+            d.line(pts, fill=col, width=3 * S)
+            for x, y in pts:
+                d.ellipse((x - 4 * S, y - 4 * S, x + 4 * S, y + 4 * S), fill=col)
+            labels.append([pts[-1][1], g, col])
+        labels.sort()
+        for k in range(1, len(labels)):
+            labels[k][0] = max(labels[k][0], labels[k - 1][0] + 24 * S)
+        labels[-1][0] = min(labels[-1][0], (y0 + h) * S)
+        for k in range(len(labels) - 2, -1, -1):
+            labels[k][0] = min(labels[k][0], labels[k + 1][0] - 24 * S)
+        for y, g, col in labels:
+            d.text(((x0 + w + 16) * S, y), g, font=small, fill=col, anchor="lm")
+    save(img, "fig_learning.png")
+
 if __name__ == "__main__":
     nor_figure()
     clock_figure()
     latch_figure()
     system_figure()
+    if all(path.exists() for path in LEARN):
+        learning_figure()

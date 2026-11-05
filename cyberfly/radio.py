@@ -5,13 +5,13 @@ import numpy as np
 from .compiler import FPU
 from .iss import ISS
 from .neurons import W, Kind
+from .ports import acknowledge, copy_into_port
 
 BITS = 14
 MASK = (1 << BITS) - 1
 SLOT = 6
 SEND, ACK, VALID = 31, 30, 31
 YBAR_EXCITE, YBAR_VETO = 363, 484
-COPY_PULSES = 8
 MAGIC = 3
 ORIGIN = 0x200
 MAX_WORDS = 96
@@ -82,33 +82,8 @@ def _receiver(fpu: FPU) -> int:
         c.edge(taps[m], s, W)
         c.latch_set(valid, s)
 
-    io, wr = nl.names["io_out"], nl.names["io_wr"][0]
-    k_ack = fpu.sample_phase + 4
-    k_ack += k_ack % 2
-    ack = [c.gate(k_ack, "rx.ack")]
-    for v in (_not(fpu, wr), _not(fpu, io[ACK])):
-        c.edge(v, ack[0], -W)
-    for m in range(6):
-        n = _relay(c, f"rx.ack{m + 1}")
-        c.edge(ack[-1], n, W)
-        ack.append(n)
-    for m in (0, 2, 4, 6):
-        r = c.new(Kind.GATE, 0, f"rx.reset{m}")
-        c.edge(ack[m], r, W)
-        for li in hold + [valid]:
-            c.latch_reset(li, r)
-
-    port = nl.port_bits
-    kc = fpu.clear_phases[-1] + 3
-    kc += kc % 2
-    assert kc + 2 * (COPY_PULSES - 1) < fpu.M + min(fpu.input_samples) - 2
-    for bit, li in list(enumerate(hold)) + [(VALID, valid)]:
-        g = c.new(Kind.GATE, kc, f"rx.copy{bit}")
-        for k in range(kc, kc + 2 * COPY_PULSES, 2):
-            c.edge(c.clock(k - 1), g, W)
-        c.edge(c.latches[li][1], g, -W)
-        for target in fpu.latches[port[bit]]:
-            c.latch_set(target, g)
+    acknowledge(fpu, ACK, hold + [valid], "rx")
+    copy_into_port(fpu, dict(enumerate(hold)) | {VALID: valid}, "rx")
     return rx
 
 

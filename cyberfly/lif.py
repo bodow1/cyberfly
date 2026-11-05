@@ -28,6 +28,7 @@ def _library() -> C.CDLL:
     lib.sim_time.restype = C.c_int64
     lib.sim_time.argtypes = [C.c_void_p]
     lib.sim_reset.argtypes = [C.c_void_p]
+    lib.sim_quiet.argtypes = [C.c_void_p, C.c_void_p]
     lib.sim_voltage.argtypes = [C.c_void_p, C.c_int32, C.c_void_p, C.c_void_p]
     return lib
 
@@ -64,6 +65,10 @@ class Sim:
 
     def reset(self):
         self.lib.sim_reset(self.h)
+
+    def quiet(self, mask: np.ndarray):
+        mask = np.ascontiguousarray(mask, np.uint8)
+        self.lib.sim_quiet(self.h, mask.ctypes.data)
 
     def run(self, steps: int, kicks=None, record=None, cap: int = 50_000_000):
         if kicks is None or not len(kicks[0]):

@@ -5,17 +5,17 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from PIL import Image, ImageDraw, ImageFont
 
+from cyberfly.compiler import compile_fpu
 from cyberfly.connectome import Connectome
-from cyberfly.learning import CallCircuit, features, train_reader
+from cyberfly.firmware import build
+from cyberfly.hdl import Netlist
+from cyberfly.learning import SIGN_BIT, CallCircuit, Tool, features, train_reader
 
 SIGNS = Path(__file__).resolve().parent.parent / "data" / "signs.npz"
-ARROWS = {"left", "right"}
-GROUPS = {"arrow": 0.4, "stone": 0.25, "blank": 0.15, "none": 0.2}
+GROUP_OF = {"left": "arrow", "right": "arrow", "letter": "letter", "stone": "stone", "blank": "blank", "none": "none"}
+GROUPS = {"arrow": 0.3, "letter": 0.3, "stone": 0.15, "blank": 0.1, "none": 0.15}
 VISUAL = ("visual_projection", "optic", "visual_centrifugal")
-BG, LINE, FG, DIM, ACCENT = (11, 12, 14), (40, 43, 49), (236, 232, 225), (88, 94, 102), (240, 83, 58)
-SHADES = {"arrow": ACCENT, "stone": (150, 156, 164), "blank": (110, 116, 124), "none": (70, 75, 82)}
 
 
 def mushroom_body(fly: Connectome):
@@ -30,36 +30,41 @@ def mushroom_body(fly: Connectome):
     return (left, right), kc
 
 
-def plot(curve: list[dict], path: Path):
-    W, H, S = 900, 420, 2
-    img = Image.new("RGB", (W * S, H * S), BG)
-    d = ImageDraw.Draw(img)
-    font = ImageFont.load_default(13 * S)
-    x0, y0, x1, y1 = 70 * S, 40 * S, (W - 150) * S, (H - 60) * S
-    for v in (0, 0.5, 1):
-        y = y1 - v * (y1 - y0)
-        d.line((x0, y, x1, y), fill=LINE, width=S)
-        d.text((x0 - 12 * S, y), f"{v:.1f}", font=font, fill=DIM, anchor="rm")
-    last = curve[-1]["trial"] or 1
-    for g, col in SHADES.items():
-        pts = [(x0 + c["trial"] / last * (x1 - x0), y1 - c[g] * (y1 - y0)) for c in curve]
-        d.line(pts, fill=col, width=3 * S)
-        for p in pts:
-            d.ellipse((p[0] - 4 * S, p[1] - 4 * S, p[0] + 4 * S, p[1] + 4 * S), fill=col)
-        d.text((x1 + 14 * S, pts[-1][1]), g, font=font, fill=col, anchor="lm")
-    for c in curve:
-        x = x0 + c["trial"] / last * (x1 - x0)
-        d.text((x, y1 + 10 * S), str(c["trial"]), font=font, fill=DIM, anchor="ma")
-    d.text((x1, y1 + 30 * S), "trials", font=font, fill=DIM, anchor="ra")
-    d.text((x0, 14 * S), "MBON09 call rate on held-out sign frames", font=font, fill=FG)
-    img.resize((W, H), Image.LANCZOS).save(path)
+def tools(fly: Connectome, kinds: list[str], names: list[str]) -> list[Tool]:
+    cells = lambda types: np.array(fly.cells(types))
+    bit = lambda kind: SIGN_BIT + kinds.index(kind)
+    every = [
+        Tool("cpu", cells(["MBON09"]), cells(["PAM12", "PAM13", "PAM14"]), 3, 30, 12, (bit("left"), bit("right"))),
+        Tool("llm", cells(["MBON27"]), cells(["PAM01"]), 10, 29, 13, (bit("letter"),)),
+    ]
+    return [t for t in every if t.name in names]
+
+
+def synapses(circuit: CallCircuit) -> dict:
+    out = {}
+    for name, p in circuit.plastic.items():
+        reader = ~p.depress_only
+        out[f"{name}.pre"] = np.where(reader, p.pre - circuit.decision, p.pre)
+        out[f"{name}.post"] = circuit.sim.post[p.edges]
+        out[f"{name}.reader"] = reader
+        out[f"{name}.w"] = circuit.sim.w[p.edges].copy()
+    return out
+
+
+def transfer(saved: dict, circuit: CallCircuit):
+    for name in circuit.plastic:
+        key = lambda s: zip(s[f"{name}.reader"].tolist(), s[f"{name}.pre"].tolist(), s[f"{name}.post"].tolist())
+        w = dict(zip(key(saved), saved[f"{name}.w"].tolist()))
+        circuit.sim.w[circuit.plastic[name].edges] = [w[k] for k in key(synapses(circuit))]
 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--trials", type=int, default=240)
-    ap.add_argument("--every", type=int, default=60)
-    ap.add_argument("--shuffle", action="store_true")
+    ap.add_argument("--tools", nargs="+", default=["cpu", "llm"], choices=["cpu", "llm"])
+    ap.add_argument("--trials", type=int, default=80)
+    ap.add_argument("--every", type=int, default=20)
+    ap.add_argument("--held", type=int, default=8)
+    ap.add_argument("--seed", type=int, default=3)
     ap.add_argument("--out", type=Path, default=Path("runs/learn"))
     args = ap.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
@@ -68,38 +73,58 @@ def main():
     kinds = [str(k) for k in signs["kinds"]]
     F = features(signs["frames"].astype(np.float32), signs["empty"].astype(np.float32))
     y, render = signs["label"].astype(int), signs["render"]
-    group = np.array(["arrow" if kinds[v] in ARROWS else kinds[v] for v in y])
+    group = np.array([GROUP_OF[kinds[v]] for v in y])
     train, test = np.nonzero(render != 2)[0], np.nonzero(render == 2)[0]
     reader = train_reader(F[train], y[train], len(kinds))
     accuracy = float(((F[test] @ reader).argmax(1) == y[test]).mean())
 
     fly = Connectome.load()
     visual, kc = mushroom_body(fly)
-    call = fly.cells(["MBON09"])
-    circuit = CallCircuit((len(fly), fly.pre, fly.post, fly.count), visual, kc, call, reader)
-    print(f"reader held-out accuracy {accuracy:.2f}; {len(call)} MBON09 cells; "
-          f"{len(circuit.plastic.edges)} plastic synapses", flush=True)
+    fpu = compile_fpu(Netlist.fpu())
+    fpu.load(build("reward.c"))
+    ts = tools(fly, kinds, args.tools)
+    brain = (len(fly), fly.pre, fly.post, fly.count)
+    circuit = CallCircuit(brain, visual, kc, ts, reader, fpu=fpu)
+    tester = CallCircuit(brain, visual, kc, ts, reader)
+    print(f"reader held-out accuracy {accuracy:.2f}; " + "; ".join(
+        f"{t.name}: {len(t.call)} call cells, {len(t.dans)} DANs, {len(circuit.plastic[t.name].edges)} plastic synapses"
+        for t in ts), flush=True)
 
-    held = {g: test[group[test] == g][:10] for g in GROUPS}
+    start = time.time()
+    circuit.respond(0)
+    for t in ts:
+        circuit.reference[t.name] = float(circuit.probe(t, t.reads[0]))
+    print(f"DAN spikes per rewarded call {circuit.reference}  {time.time() - start:.0f} s", flush=True)
 
-    def evaluate(trial):
-        return {"trial": trial} | {g: circuit.call_rate(F[ks]) for g, ks in held.items()}
+    held = {g: test[group[test] == g][:args.held] for g in GROUPS}
+    curve, log = [], []
 
-    rng = np.random.default_rng(3)
-    curve, log, start = [evaluate(0)], [], time.time()
-    print(curve[-1], flush=True)
-    for t in range(args.trials):
+    def checkpoint(trial):
+        saved = synapses(circuit)
+        np.savez(args.out / f"synapses{trial}.npz", **saved)
+        transfer(saved, tester)
+        rates = {t.name: {} for t in ts}
+        for g, ks in held.items():
+            for name, rate in tester.call_rates(F[ks]).items():
+                rates[name][g] = rate
+        curve.append({"trial": trial} | rates)
+        print(curve[-1], f"{time.time() - start:.0f} s", flush=True)
+        (args.out / "learn.json").write_text(json.dumps(dict(curve=curve, log=log, reader_accuracy=accuracy,
+                                                             reference=circuit.reference)))
+
+    checkpoint(0)
+    rng = np.random.default_rng(args.seed)
+    for trial in range(args.trials):
         g = str(rng.choice(list(GROUPS), p=list(GROUPS.values())))
         k = int(rng.choice(train[group[train] == g]))
-        spikes = circuit.look(F[k], t, explore_hz=2.0)
-        pays = rng.random() < 0.3 if args.shuffle else g == "arrow"
-        r = circuit.reinforce(spikes, float(pays))
-        log.append(dict(trial=t, group=g, calls=circuit.calls(spikes), r=r))
-        if (t + 1) % args.every == 0:
-            curve.append(evaluate(t + 1))
-            print(curve[-1], f"{time.time() - start:.0f} s", flush=True)
-    (args.out / "learn.json").write_text(json.dumps(dict(curve=curve, log=log, reader_accuracy=accuracy)))
-    plot(curve, args.out / "call_rate.png")
+        t0 = circuit.sim.t
+        spikes, dans = circuit.trial(F[k], trial)
+        r = circuit.reinforce(spikes, dans)
+        calls = {t.name: circuit.calls(spikes, t) for t in ts}
+        log.append(dict(trial=trial, group=g, frame=k, calls=calls, dans=dans, r=r, steps=circuit.sim.t - t0))
+        print(f"trial {trial} {g:6s} calls {calls} dans {dans} r {r} {(circuit.sim.t - t0) / 1e4:.1f} s", flush=True)
+        if (trial + 1) % args.every == 0:
+            checkpoint(trial + 1)
 
 
 if __name__ == "__main__":

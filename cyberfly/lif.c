@@ -55,6 +55,17 @@ void sim_reset(Sim *s) {
   s->t = 0;
 }
 
+void sim_quiet(Sim *s, const uint8_t *mask) {
+  for (int32_t i = 0; i < s->n; i++)
+    if (mask[i]) { s->v[i] = s->v0; s->g[i] = 0; s->last[i] = -1000000000; }
+  for (int k = 0; k <= s->delay; k++) {
+    int32_t m = 0;
+    for (int32_t j = 0; j < s->ring_n[k]; j++)
+      if (!mask[s->ring[k][j]]) s->ring[k][m++] = s->ring[k][j];
+    s->ring_n[k] = m;
+  }
+}
+
 static void push(Sim *s, int slot, int32_t i) {
   if (s->ring_n[slot] == s->ring_cap[slot]) {
     s->ring_cap[slot] = s->ring_cap[slot] ? 2 * s->ring_cap[slot] : 1024;

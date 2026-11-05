@@ -8,7 +8,7 @@ The brain is the FlyWire connectome, a map of 138,639 neurons in an adult *Droso
 
 The computer is a 32-bit RISC-V processor, which we call the FPU (Fly Processing Unit), with 1 KiB of RAM. It is compiled into 83,864 LIF neurons that use the same model and parameters as the fly's own. Its output bits excite visual neurons in the fly brain, and descending neurons, which carry commands from the brain to the body, write its input bits, so programs on the FPU can show the fly things and read what it decides to do. We found that showing it the right things is enough to steer where it walks and when it takes off. Next to the FPU sits an optional GPU that renders a 3D maze, bringing the computer to 186,381 neurons. The shooter sends the enemy's screen position to the fly's visual neurons and reads its steering and firing signals.
 
-The fly also has a body. In FlyGym a simulated fly sees through its compound eyes and is steered by its descending neurons, and the FPU turns it by measured angles, follows arrow signs to food, adds numbers written on signs and walks or flies the shape of a digit. A pair of radio neurons lets the FPU exchange messages with the outside world, for example API calls to language models, and a language model can even send it a whole new program through a bootloader. In a separate experiment, mushroom body neurons learn from reward when to signal a call to the FPU.
+The fly also has a body. In FlyGym a simulated fly sees through its compound eyes and is steered by its descending neurons, and the FPU turns it by measured angles, follows arrow signs to food, adds numbers written on signs and walks or flies the shape of a digit. A pair of radio neurons lets the FPU exchange messages with the outside world, for example API calls to language models, and a language model can even send it a whole new program through a bootloader. In a separate experiment, mushroom body neurons learn when to signal a call to the FPU or to a language model, from the fly's own dopamine neurons, which the FPU excites when it can act on a call.
 
 ## How it works
 
@@ -85,24 +85,30 @@ The radio lets the FPU exchange messages with the outside world through one tran
 
 ### Learning to call the computer
 
-The FPU is useful to the fly only if something in the brain decides when to use it. Cyberfly uses MBON09, an output cell type of the mushroom body, the part of the fly brain that forms learned associations. In the steering wiring, MBON09 spikes set input bit 3, so MBON09 firing acts as a call to the FPU.
+The FPU is useful to the fly only if something in the brain decides when to use it. Cyberfly uses MBON09 and MBON27, two output cell types of the mushroom body, the part of the fly brain that forms learned associations. MBON09 spikes set input bit 3, which is a call to the FPU, and MBON27 spikes set input bit 10, which is a call for a language model. Each call is held by a pair of latch neurons until the program on the FPU acknowledges it.
 
-Two sets of synapses onto MBON09 can change. The first are its synapses from Kenyon cells, the main neurons of the mushroom body. The second come from a small sign reader, a layer of neurons whose weights were trained offline to classify FlyGym renders of signs. Pixel neurons for the ommatidia drive both the reader and the visual neurons that feed the Kenyon cells.
+Two sets of synapses onto each of the two cell types can change. The first are their synapses from Kenyon cells, the main neurons of the mushroom body. The second come from a small sign reader, a layer of neurons whose weights were trained offline to classify FlyGym renders of signs. Pixel neurons for the ommatidia drive both the reader and the visual neurons that feed the Kenyon cells. The reader has one decision neuron for each kind of sign, and the winning one also sets one of input bits 4 to 9 through a latch that holds the latest decision, so the program can read what the fly saw after the sign is gone.
 
-In each trial the fly sees one sign for 0.5 s. If MBON09 fires, each changeable input weight, in units of synapse count, is updated by
+The third factor comes from the fly's dopamine neurons. The Kenyon cell axons are divided into compartments, each with its own output neurons and its own dopaminergic neurons, and the synapses from Kenyon cells onto an output neuron change when the dopamine neurons of its compartment fire (Aso and Rubin, 2016). MBON09 sits in the γ3 and β′1 compartments, which get their dopamine from PAM12 in γ3 and PAM13 and PAM14 in β′1 (Li et al., 2020), and in the FlyWire connectome these three types also make the most synapses onto MBON09. MBON27 sits in γ5, the compartment of PAM01, which is likewise the type with the most synapses onto MBON27. Output bits 12 and 13 of the FPU drive follower neurons that excite these 51 and 41 dopamine neurons, the same way the steering bits excite LC10c.
+
+The program for this, `firmware/reward.c`, waits for a call. When MBON09 calls, it reads the held decision, and if the sign was an arrow it writes the steering command for that arrow together with bit 12. When MBON27 calls, it raises bit 13 if the sign was a letter. The reward bit stays on for one instruction, about 1.3 s, during which each dopamine neuron fires 132 times. The same store acknowledges the call, which also clears the decision the program used, so a second call on the same sign is answered without reward.
+
+In each trial the fly sees one sign for 0.5 s, and the trial continues until the FPU has answered every call. If MBON09 or MBON27 fired, each changeable input weight onto it, in units of synapse count, is updated by
 
 ```
-dw = 0.05 · gain · (reward − 0.3 − 0.2) · min(pre spikes, 10) · min(MBON09 spikes, 3)
+dw = 0.05 · gain · (D / D₁ − 0.3 − 0.2) · min(pre spikes, 10) · min(MBON spikes, 3)
 ```
 
-where the reward is 1 for an arrow sign and 0 for a stone, a blank board or nothing. Kenyon cell synapses can only weaken, reader synapses have a gain of 40, and all weights are bounded. This rule is inspired by dopamine plasticity in the mushroom body (Aso and Rubin, 2016). The experiment supplies the reward, and an unrewarded call can weaken active synapses. Before training, MBON09 fires for every kind of sign, and during training it also receives spontaneous spikes at 2 Hz. In a run of `examples/learn.py`, the share of held-out frames on which any MBON09 cell fired went from 1.0 for every kind of sign before training to 1.0 for the ten left-arrow frames tested, 0.4 for stones, 0.1 for blank boards and 0.0 for no sign after 60 trials. The same rates were measured at trials 120, 180 and 240.
+where D is the number of spikes its dopamine neurons fired during the trial and D₁ is the number they fire for one rewarded call, measured once before training by holding a call and a matching decision in the latches. Kenyon cell synapses can only weaken, reader synapses have a gain of 40, and all weights are bounded. A weight therefore changes only when its input and the output neuron both fired, and the dopamine its compartment received in that trial decides whether it grows or weakens. The rule is inspired by dopamine plasticity in the mushroom body. Before training both cell types fire for every kind of sign, and during training they also receive spontaneous spikes at 2 Hz. The fly brain neurons are reset at the start of each trial, while the FPU keeps running.
 
-<p align="center"><img src="docs/fig_learning.png" width="80%"></p>
-<p align="center"><sub>MBON09 call rate on held-out sign frames during training, from <code>examples/learn.py</code> on the full connectome.</sub></p>
+We ran `examples/learn.py` on the full connectome for 80 trials, once for each cell type and each of three trial orders, and measured on eight held-out frames of each kind of sign whether any cell of the type fired. MBON09 went from calling on every frame to calling on 1.0 of the arrows, 0.5 of the stones, 0.125 of the blank boards and none of the letters or empty views, and it reached these rates by trial 60 in every run. MBON27 called on every letter and on nothing else from trial 20 on. A trial in which the FPU rewards a call takes about 38 s of simulated time for MBON09 and 20 s for MBON27, and one without reward about 17 s, most of it spent waiting for the program, which needs about a dozen instructions of 1.3 s each to read the call and answer it. A natural next step is a sparser reward, for example one given only when the fly reaches food, which would need each synapse to keep a trace of its activity until the reward arrives, and the fly brain model has no such trace.
+
+<p align="center"><img src="docs/fig_learning.png" alt="MBON09 keeps calling on arrows and MBON27 on letters, while calls on other signs drop." width="100%"></p>
+<p align="center"><sub>Share of held-out sign frames on which MBON09 and MBON27 called during training, from <code>examples/learn.py</code> on the full connectome.</sub></p>
 
 ### Testing
 
-The tests compare the gate netlist with the instruction simulator after each instruction of the Fibonacci and primes program. Over the first 50 CPU cycles they check the spiking FPU's monitored flip-flops against the gates every cycle and RAM every 25 cycles. They also run selected rv32ui tests on the gate netlist with external memory (skipping `fence_i` and `ma_data`), load a program through the bootloader, echo a frame through the radio neurons, and train a small call circuit with sign-dependent and with shuffled reward.
+The tests compare the gate netlist with the instruction simulator after each instruction of the Fibonacci and primes program. Over the first 50 CPU cycles they check the spiking FPU's monitored flip-flops against the gates every cycle and RAM every 25 cycles. They also run selected rv32ui tests on the gate netlist with external memory (skipping `fence_i` and `ma_data`), load a program through the bootloader, echo a frame through the radio neurons, train a small call circuit with dopamine that follows the sign and with shuffled dopamine, and check that the reward program excites the dopamine neurons for an arrow and not for a stone.
 
 ## Quickstart
 
@@ -146,10 +152,10 @@ The standalone radio example requests walking actions and uploads the compiled p
 uv run python examples/radio.py --request "walk a square, then rest"
 ```
 
-The learning example trains MBON09 and plots its call rate.
+The learning example trains MBON09 and MBON27 and writes their call rates to `runs/learn/learn.json`, which `docs/figures.py` draws.
 
 ```bash
-uv run python examples/learn.py --trials 240
+uv run python examples/learn.py --trials 80
 ```
 
 Pass `--gpu` to the shooter, walk and radio examples to simulate on CUDA (`uv sync --extra gpu`).
@@ -161,8 +167,8 @@ Pass `--gpu` to the shooter, walk and radio examples to simulate on CUDA (`uv sy
 | FlyWire v783 connectome with 138,639 neurons and their synapses | FPU and GPU neurons, 83,864 to 186,381 of them |
 | Shiu et al. LIF model and its parameters | Clock ring, NOR-by-inhibition gates and latch pairs |
 | Cell types and positions from the FlyWire annotations | Follower synapses from the FPU onto LC10c and LC4 |
-| Paths from LC10c and LC4 through the brain to DNa02 and DNp01 | Synapses from DNa02, DNp01 and MBON09 onto FPU capture neurons |
-| Kenyon cells, MBON09 and their synapses | Pixel neurons onto mushroom body visual inputs, the sign reader, and the three-factor rule on synapses onto MBON09 |
+| Paths from LC10c and LC4 through the brain to DNa02 and DNp01 | Synapses from DNa02, DNp01, MBON09 and MBON27 onto FPU capture and latch neurons |
+| Kenyon cells, MBON09, MBON27, PAM dopamine neurons and their synapses | Pixel neurons onto mushroom body visual inputs, the sign reader, follower synapses from the FPU onto PAM neurons, and the three-factor rule on synapses onto MBON09 and MBON27 |
 | FlyGym body, physics and compound-eye rendering | Random ommatidium-to-LC wiring and the DNa02-to-turn mapping |
 | | Radio transmit and receive neurons |
 
@@ -171,8 +177,8 @@ Pass `--gpu` to the shooter, walk and radio examples to simulate on CUDA (`uv sy
 ```
 hw/          fpu.v (RV32I core), gpu.v (raycaster), top.v, neural.v
 cyberfly/    hdl, logic, neurons, compiler, lif.c, lif, lif_gpu, runtime, iss, raycaster,
-             connectome, brain, body, radio, llm, learning, firmware
-firmware/    crt0, runtime, radio.h, boot.c, echo.c, shooter.c, fib.c, zigzag.c
+             connectome, brain, body, radio, ports, llm, learning, firmware
+firmware/    crt0, runtime, radio.h, boot.c, echo.c, shooter.c, fib.c, zigzag.c, reward.c
 examples/    shooter.py, walk.py, radio.py, learn.py
 data/        signs.npz (FlyGym renders of signs, used by learn.py)
 docs/        banner.py, figures.py
