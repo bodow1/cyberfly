@@ -91,7 +91,7 @@ On each trial, the fly sees one sign for 0.5 s. If MBON09 fires, every changeabl
 dw = 0.05 · gain · (reward − 0.3 − 0.2) · min(pre spikes, 10) · min(MBON09 spikes, 3)
 ```
 
-The reward is 1 for an arrow sign and 0 for a stone, a blank board or nothing. Kenyon cell synapses can only weaken, reader synapses have gain 40, and all weights are bounded. MBON09 also fires spontaneously at 2 Hz, so the untrained fly sometimes calls on everything. This is a three-factor rule: a synapse changes only when its input fired, MBON09 fired, and a reward signal arrived, the role dopamine plays in the fly's mushroom body.
+The reward is 1 for an arrow sign and 0 for a stone, a blank board or nothing. Kenyon cell synapses can only weaken, reader synapses have gain 40, and all weights are bounded. Before training, MBON09 fires for every kind of sign. During training it also receives spontaneous spikes at 2 Hz. This is a three-factor rule: a synapse changes only when its input fired, MBON09 fired, and a reward signal arrived, the role dopamine plays in the fly's mushroom body.
 
 ### Testing
 
