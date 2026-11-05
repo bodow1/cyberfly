@@ -58,10 +58,14 @@ class NeuralFPU(Clocked):
         for n in self.memory.values():
             self.record[n] = 1
 
-    def run(self, cycles: int):
-        kicks = self.kicks if self.sim.t == 0 else None
-        t, i = self.sim.run(cycles * self.cycle_steps, kicks, record=self.record)
+    def run(self, cycles: int, kicks=None):
+        t, i = self.spikes(cycles, kicks)
         return set(zip(t.tolist(), i.tolist()))
+
+    def spikes(self, cycles: int, kicks=None):
+        k = ([self.kicks] if self.sim.t == 0 else []) + ([kicks] if kicks is not None else [])
+        merged = tuple(np.concatenate(x) for x in zip(*k)) if k else None
+        return self.sim.run(cycles * self.cycle_steps, merged, record=self.record)
 
     def ram(self, spikes: set, cycle: int) -> dict:
         t = self.sample_time(cycle)

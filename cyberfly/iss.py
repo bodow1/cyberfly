@@ -9,7 +9,8 @@ def sext(v: int, bits: int) -> int:
 
 
 class ISS:
-    def __init__(self, program: list[int], aw: int = 8, io_in: Callable[[], int] | int = 0, gpu=None):
+    def __init__(self, program: list[int], aw: int = 8, io_in: Callable[[], int] | int = 0, gpu=None,
+                 on_store: Callable[[int], None] | None = None):
         self.mem = list(program) + [0] * ((1 << aw) - len(program))
         self.aw = aw
         self.r = [0] * 32
@@ -18,6 +19,7 @@ class ISS:
         self.io_out: list[int] = []
         self.io_in = io_in
         self.gpu = gpu
+        self.on_store = on_store
         self.steps = 0
 
     def _word(self, a: int) -> int:
@@ -35,6 +37,8 @@ class ISS:
             self.gpu.draw(v)
         else:
             self.io_out.append(v)
+            if self.on_store is not None:
+                self.on_store(v)
 
     def step(self):
         if self.halted:

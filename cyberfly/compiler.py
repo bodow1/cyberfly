@@ -20,6 +20,7 @@ class FPU:
     inputs: dict
     input_samples: list
     clear_phases: list | None
+    first_write: int
     followers: dict = field(default_factory=dict)
 
     def latch_neuron(self, net) -> int:
@@ -357,4 +358,5 @@ def compile_fpu(nl: Netlist, settle: int = SETTLE) -> FPU:
     input_samples = sorted({k - lg for _, (k, lits) in spec.items() for (s, lg0) in lits
                             if s[0] == "L" and s[1] in in_set for lg in ((1, 2) if lg0 is None else (lg0,))})
     return FPU(circuit=c, M=M, netlist=nl, sample_phase=first + first % 2, latches=dict(lcopies),
-               memory=memory, inputs=inputs, input_samples=input_samples, clear_phases=clear)
+               memory=memory, inputs=inputs, input_samples=input_samples, clear_phases=clear,
+               first_write=min(w[2] for w in writes.values() if w[0] == "sr"))
