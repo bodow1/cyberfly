@@ -1,8 +1,11 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
-title: "cyberfly: a RISC-V computer compiled into the fruit fly connectome"
+title: "cyberfly: a computer compiled into the brain of a fruit fly"
 authors:
-  - alias: bodow1
+  - family-names: Wirth
+    given-names: Bodo
+  - family-names: Kannan
+    given-names: Naveen
 repository-code: "https://github.com/bodow1/cyberfly"
 license: MIT
 version: 0.1.0

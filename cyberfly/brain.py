@@ -9,6 +9,7 @@ from .neurons import W
 from .runtime import Clocked, boot_kicks
 
 LC10C = ["LC10c-1", "LC10c-2"]
+CALL_BIT = 3
 
 
 @dataclass
@@ -48,6 +49,7 @@ def steering_wiring(fpu: FPU, fly: Connectome, seed: int = 0) -> Wiring:
     outputs = {f"o{b}": (io[b], groups[b]) for b in range(12)}
     dn = descending(fly)
     inputs = {dn["DNa02_L"]: 0, dn["DNa02_R"]: 1, dn["GF_L"]: 2, dn["GF_R"]: 2}
+    inputs |= {cell: CALL_BIT for cell in fly.cells(["MBON09"])}
     return Wiring(outputs, inputs)
 
 
