@@ -2,17 +2,11 @@
   <img src="docs/banner.gif" alt="cyberfly" width="100%">
 </p>
 
-<p align="center"><b>A 32-bit RISC-V computer, compiled into spiking neurons and wired into the connectome of a fruit fly.</b></p>
-
----
-
-## What it is
-
-cyberfly is a small computer built out of simulated neurons and placed inside a simulated fruit fly brain.
+Cyberfly is a small computer built out of simulated neurons and placed inside a simulated fruit fly brain.
 
 The brain is the FlyWire connectome: a map of all 138,639 neurons in an adult *Drosophila* brain and the synapses between them. Shiu et al. (2024) turned this map into a simulation in which every neuron is a leaky integrate-and-fire (LIF) neuron: it adds up its inputs, leaks back toward rest, and fires a spike when its voltage crosses a threshold.
 
-The computer is a 32-bit RISC-V processor, called the FPU (Fly Processing Unit). It is written in Verilog, a language for describing digital circuits, and compiled into LIF neurons with the same model and parameters as the fly's own. Its output bits excite real visual neurons in the fly brain, and real descending neurons, which carry commands from the brain to the body, write its input bits. Programs are written in C.
+The computer is a 32-bit RISC-V processor, called the FPU (Fly Processing Unit). It is written in Verilog, a language for describing digital circuits, and compiled into LIF neurons with the same model and parameters as the fly's own. Its output bits excite visual neurons in the fly brain, and descending neurons, which carry commands from the brain to the body, write its input bits. Programs are written in C.
 
 - FPU: RV32I instruction set, 1 KiB of RAM. 83,864 neurons.
 - GPU: a raycaster that renders a 32-column view of a maze. FPU and GPU together are 186,381 neurons.
@@ -55,7 +49,7 @@ The FPU's registers, its program counter and its 256 × 32-bit RAM are all built
 
 ### From Verilog to neurons
 
-The FPU is about 160 lines of Verilog. Yosys, an open-source synthesis tool, turns it into a netlist: a list of 16,215 NOR and NOT gates and 1,154 flip-flops and the wires between them. The cyberfly compiler then:
+The FPU is about 160 lines of Verilog. Yosys, an open-source synthesis tool, turns it into a netlist: a list of 16,215 NOR and NOT gates and 1,154 flip-flops and the wires between them. The Cyberfly compiler then:
 
 1. assigns each gate a phase after all of its inputs,
 2. creates one neuron per gate, with a clock synapse from the ring and an inhibitory synapse from each input,
@@ -71,7 +65,7 @@ The GPU renders a first-person view of a 16 × 16 maze. The FPU writes a camera 
 ### Wiring it into the fly
 
 <p align="center"><img src="docs/fig_system.png" width="100%"></p>
-<p align="center"><sub>The FPU and GPU sit in the same simulation as the fly brain and connect to it through real cell types.</sub></p>
+<p align="center"><sub>The FPU and GPU sit in the same simulation as the fly brain and connect to it through LC10c, LC4, DNa02 and DNp01.</sub></p>
 
 Each output bit of the FPU drives a few follower neurons. While the bit is 1, the followers fire every other phase and excite a group of LC10c and LC4 neurons, two types of visual projection neurons. In the shooter, the GPU's 32 enemy columns drive 32 such groups, left columns into the left side of the brain and right columns into the right.
 
@@ -101,7 +95,7 @@ The reward is 1 for an arrow sign and 0 for a stone, a blank board or nothing. K
 
 ### Testing
 
-The tests run the same programs on three models and compare them cycle by cycle: an instruction-set simulator written in Python, the gate netlist, and the spiking neurons. They also run the RISC-V rv32ui conformance suite on the netlist, load a program through the bootloader, echo a frame through the radio neurons, and train a small call circuit with real and with shuffled reward.
+The tests run the same programs on three models and compare them cycle by cycle: an instruction-set simulator written in Python, the gate netlist, and the spiking neurons. They also run the RISC-V rv32ui conformance suite on the netlist, load a program through the bootloader, echo a frame through the radio neurons, and train a small call circuit with sign-dependent and with shuffled reward.
 
 ## Quickstart
 
@@ -180,7 +174,7 @@ tests/       neurons, fpu, gpu, radio, learning
 
 ## Citing
 
-If you use cyberfly in your work, please cite it. GitHub's "Cite this repository" button reads [CITATION.cff](CITATION.cff); in BibTeX:
+If you use Cyberfly in your work, please cite it. GitHub's "Cite this repository" button reads [CITATION.cff](CITATION.cff); in BibTeX:
 
 ```bibtex
 @software{wirth2026cyberfly,
