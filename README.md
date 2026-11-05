@@ -32,7 +32,7 @@ Each gate is given a phase and takes its clock spike from the ring neuron one ph
 
 ### Memory
 
-A gate holds its value for one phase, and a computer has to keep registers and RAM from one cycle to the next. Each stored bit is therefore a pair of neurons, A and B, that inhibit each other. A is driven to fire on every even phase and B on every odd phase, and whichever fired last silences the other. Once A is firing, it silences B on every odd phase and B never gets to fire, and once B is firing the same is true the other way round. Thus exactly one of the two neurons keeps firing until something interrupts it. A firing stands for 1 and B firing stands for 0. A set neuron that inhibits B once hands the rhythm to A, and a reset neuron that inhibits A once hands it back to B.
+A gate holds its value for one phase, and a computer has to keep registers and RAM from one cycle to the next. Each stored bit is therefore a pair of neurons, A and B, that inhibit each other. A is driven to fire on every even phase and B on every odd phase, and whichever fired last silences the other. Once A is firing, it silences B on every odd phase and B never gets to fire, and once B is firing the same is true the other way round. Thus exactly one of the two neurons keeps firing until something interrupts it. A firing stands for 1 and B firing stands for 0. A set neuron that inhibits B once hands the rhythm to A, and a reset neuron that inhibits A once hands it back to B, allowing us to flip the bit.
 
 <p align="center"><img src="docs/fig_latch.png" width="100%"></p>
 <p align="center"><sub>One stored bit in the simulator. A set spike switches it from 0 to 1, and a reset spike switches it back.</sub></p>
