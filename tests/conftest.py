@@ -6,12 +6,12 @@ from cyberfly.hdl import Netlist
 
 @pytest.fixture(scope="session")
 def fpu_netlist():
-    return Netlist.build("fly_fpu")
+    return Netlist.fpu()
 
 
 @pytest.fixture(scope="session")
 def gpu_netlist():
-    return Netlist.build("fly_fpu_gpu")
+    return Netlist.fpu(gpu=True)
 
 
 @pytest.fixture(scope="session")

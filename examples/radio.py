@@ -32,7 +32,7 @@ def main():
     args = ap.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
 
-    nl = Netlist.build("fly_fpu")
+    nl = Netlist.fpu()
     fpu = compile_fpu(nl)
     boot = build("boot.c")
     fpu.load(boot)

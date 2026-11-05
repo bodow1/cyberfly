@@ -22,7 +22,7 @@ def main():
     args.out.mkdir(parents=True, exist_ok=True)
 
     program = build("shooter.c")
-    nl = Netlist.build("fly_fpu_gpu")
+    nl = Netlist.fpu(gpu=True)
     fpu = compile_fpu(nl)
     fpu.load(program)
     fly = Connectome.load()

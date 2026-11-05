@@ -62,6 +62,10 @@ class Netlist:
         self.names = {nm: nd["bits"] for nm, nd in m["netnames"].items()}
 
     @classmethod
+    def fpu(cls, gpu: bool = False) -> "Netlist":
+        return cls.build("fly_fpu_gpu" if gpu else "fly_fpu")
+
+    @classmethod
     def build(cls, design: str) -> "Netlist":
         files, defines = DESIGNS[design]
         return cls(synthesize([HW / f for f in files], design, defines), design)

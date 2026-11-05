@@ -23,7 +23,7 @@ def main():
     args = ap.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
 
-    fpu = compile_fpu(Netlist.build("fly_fpu"))
+    fpu = compile_fpu(Netlist.fpu())
     fpu.load(build(args.program))
     fly = Connectome.load()
     wiring = steering_wiring(fpu, fly)

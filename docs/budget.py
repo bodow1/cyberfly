@@ -24,7 +24,7 @@ def part(name: str, kind: int, ports: set) -> str:
 
 
 def main():
-    nl = Netlist.build("fly_fpu")
+    nl = Netlist.fpu()
     c = compile_fpu(nl).circuit
     ports = {f"q{b}" for b in nl.port_bits}
     counts = Counter(part(n, k, ports) for n, k in zip(c.name, c.kind))

@@ -2,13 +2,11 @@
   <img src="docs/banner.gif" alt="cyberfly" width="100%">
 </p>
 
-Cyberfly is a small computer built out of simulated neurons and placed inside a simulated fruit fly brain.
+Cyberfly is a small computer built out of simulated neurons and wired into a simulated fruit fly brain.
 
 The brain is the FlyWire connectome, a map of all 138,639 neurons in an adult *Drosophila* brain and the synapses between them. Shiu et al. (2024) turned this map into a simulation in which every neuron is a leaky integrate-and-fire (LIF) neuron, which adds up its inputs, leaks back toward rest and fires a spike when its voltage crosses a threshold.
 
-The computer is a 32-bit RISC-V processor called the FPU (Fly Processing Unit), with 1 KiB of RAM. It is compiled into 83,864 LIF neurons that use the same model and parameters as the fly's own. A small GPU that renders a 3D maze brings the total to 186,381 neurons. The FPU's output bits excite visual neurons in the fly brain, and descending neurons, which carry commands from the brain to the body, write its input bits. A pair of radio neurons lets a bootloader receive new programs, and a neuron in the fly's mushroom body learns from reward when to call the FPU. In the embodied version a simulated fly in FlyGym sees through its compound eyes and is steered by its descending neurons. Programs are written in C.
-
-Inspired by [Qwenputer](https://github.com/divagr18/qwenputer).
+The computer is a 32-bit RISC-V processor, which we call the FPU (Fly Processing Unit), with 1 KiB of RAM. It is compiled into 83,864 LIF neurons that use the same model and parameters as the fly's own. Its output bits excite visual neurons in the fly brain, and descending neurons, which carry commands from the brain to the body, write its input bits. Next to the FPU sits a small GPU that renders a 3D maze, bringing the total to 186,381 neurons. With it, the fly's brain draws a shooter game onto its own visual neurons and plays it with its own steering neurons. A pair of radio neurons lets a bootloader receive new programs. A neuron in the fly's mushroom body learns from reward when to call the FPU, so the FPU becomes a tool the fly learns to use. In the embodied version a simulated fly in FlyGym sees through its compound eyes and is steered by its descending neurons.
 
 ## How it works
 
@@ -39,7 +37,9 @@ Writing a 1 takes a single spike from a set neuron that inhibits B. B misses one
 <p align="center"><img src="docs/fig_latch.png" width="100%"></p>
 <p align="center"><sub>One latch in the simulator. B fires while the bit is 0, a set spike switches the firing to A, and a reset spike switches it back.</sub></p>
 
-The FPU's 31 registers, its program counter and its other state use 1,154 of these latches, each with its own set and reset neurons that write the next value at a fixed phase of every cycle. The 1 KiB of RAM is 256 words of 32 bits, or 8,192 latches. Each RAM bit uses four neurons, A, B, a read gate that fires when its word is addressed and the bit is 1, and a write gate that sets the bit. Address-decoder gates turn the 8-bit address into one word line per word. On a read, the read gates of the addressed word drive the 32 data lines. On a write, a clear neuron for the addressed word first resets all 32 of its latches, and the write gates then set the bits that are 1.
+The figure shows one write of a 1 followed by one write of a 0. At first the bit is 0, so B fires on phases 1, 3 and 5. Shortly before phase 6 the set neuron fires once. Its inhibition reaches B in time to stop it from firing on phase 7, so on phase 8 nothing silences A and A fires. From then on A fires on every even phase and keeps B silent, and the bit is 1. Shortly before phase 17 the reset neuron fires once and stops A from firing on phase 18. B, no longer silenced, fires on phase 19 and keeps firing, and the bit is 0 again.
+
+The FPU's 31 registers, its program counter and its other state use 1,154 of these latches, each with its own set and reset neurons that write the next value at a fixed phase of every cycle. The 1 KiB of RAM is 256 words of 32 bits, or 8,192 latches. Each RAM bit uses four neurons, A, B, a read gate that fires when its word is addressed and the bit is 1, and a write gate that sets the bit. Address-decoder gates turn the 8-bit address into 256 word lines, and only the line of the addressed word is active in a given cycle. A read gate fires only when its word line is active and its bit is 1, so on a read only the 32 read gates of the addressed word can fire, and for each bit position a NOR gate collects the 256 read gates of that column into one data line. On a write, the word line together with the write-enable signal fires a clear neuron for the addressed word, which resets all 32 of its latches. Later in the same cycle the write gates of that word fire for the bits that are 1 in the new value and set them.
 
 ### Compiling the CPU
 
@@ -60,9 +60,9 @@ The result is 83,864 neurons. One instruction takes two clock cycles, about 1.29
 
 The RAM is the largest part, at 35,624 neurons. The CPU core, meaning its gates, delay relays and flip-flops, is 47,844 neurons. Delay relays are needed because a gate's inputs must fire one or two phases before it, so a signal that is used many phases after it was computed is passed along a chain of NOT neurons until its consumer's phase.
 
-### The GPU
+### The GPU (optional)
 
-The same compiler builds a small GPU next to the CPU, which adds 102,517 neurons. It renders a first-person view of a 16 × 16 maze. The FPU writes a camera position and angle to it, and for each of 32 screen columns the GPU steps a ray through the maze until it hits a wall, all 32 columns in parallel, and stores the distance. It also marks the columns where an enemy is drawn. The shooter program walks forward while the centre column's distance is more than 6 steps, turns toward the side whose DNa02 fired more, and shoots when DNp01 fires.
+The compiler can also build a small GPU next to the CPU, which adds 102,517 neurons. `Netlist.fpu()` builds the FPU alone and `Netlist.fpu(gpu=True)` adds the GPU, which the shooter uses. The GPU differs from the CPU in that it has no program. It is fixed-function logic that renders a first-person view of a 16 × 16 maze. The FPU writes a camera position and angle to it, and then 32 ray units, one per screen column, each take one step through the maze on every clock cycle until they hit a wall, all in parallel, for at most 31 steps. Each ray unit outputs its distance, which sets the height of its column on screen, and the GPU also marks the columns where an enemy is drawn. The shooter program walks forward while the centre column's distance is more than 6 steps, turns toward the side whose DNa02 fired more, and shoots when DNp01 fires.
 
 ### Wiring it into the fly
 
@@ -79,7 +79,7 @@ In the embodied run, FlyGym renders what the fly sees on the 2 × 721 ommatidia 
 
 The radio lets the FPU exchange messages with the outside world through one transmit neuron and one receive neuron, using 243 extra neurons in total. To send, a program stores a 14-bit value with bit 31 set, and in the next cycle 15 gated neurons fire a start spike and then one spike for each 1 bit onto the antenna neuron, 6 phases apart. On the receiving side a chain of relay neurons samples the receive neuron in each 6-phase slot, writes the bits into flip-flops and sets a valid bit, and the program clears the frame by storing bit 30.
 
-`firmware/boot.c` walks a short zigzag, sends `?` and waits. The host decodes the `?` from the antenna neuron's spikes, asks a language model for a walking program, compiles it and sends it back as spikes on the receive neuron, as a header, three frames per 32-bit word and a checksum. The bootloader writes the words into RAM at address 0x200 and jumps there. A 36-word program takes 110 frames and 5,528 cycles to load.
+`firmware/boot.c` walks a short zigzag, sends `?` and waits. The host decodes the `?` from the antenna neuron's spikes, asks a language model for a walking program, compiles it and sends it back as spikes on the receive neuron, as a header, three frames per 32-bit word and a checksum. The bootloader writes the words into RAM at address 0x200 and jumps there. A 36-word program takes 110 frames and 5,528 cycles to load. In a larger animal, the transmit neuron's spikes could in principle be picked up by a recording electrode or a wireless implant, so the same protocol could be used to talk to real hardware.
 
 ### Learning to call the computer
 
