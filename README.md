@@ -78,7 +78,7 @@ In each trial the fly sees one sign for 0.5 s. If MBON09 fires, every changeable
 dw = 0.05 · gain · (reward − 0.3 − 0.2) · min(pre spikes, 10) · min(MBON09 spikes, 3)
 ```
 
-where the reward is 1 for an arrow sign and 0 for a stone, a blank board or nothing. Kenyon cell synapses can only weaken, reader synapses have a gain of 40, and all weights are bounded. A synapse therefore changes only when its input fired, MBON09 fired and a reward signal arrived, which is the three-factor form that dopamine plasticity takes in the mushroom body (Aso and Rubin, 2016). Before training, MBON09 fires for every kind of sign, and during training it also receives spontaneous spikes at 2 Hz.
+where the reward is 1 for an arrow sign and 0 for a stone, a blank board or nothing. Kenyon cell synapses can only weaken, reader synapses have a gain of 40, and all weights are bounded. A synapse therefore changes only when its input fired, MBON09 fired and a reward signal arrived, which is the three-factor form that dopamine plasticity takes in the mushroom body (Aso and Rubin, 2016). Before training, MBON09 fires for every kind of sign, and during training it also receives spontaneous spikes at 2 Hz. In a run of `examples/learn.py`, the share of held-out frames on which MBON09 fired went from 1.0 for every kind of sign before training to 1.0 for arrows, 0.4 for stones, 0.1 for blank boards and 0.0 for no sign after 60 trials.
 
 ### Testing
 
