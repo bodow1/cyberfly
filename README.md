@@ -28,7 +28,7 @@ Inspired by [Qwenputer](https://github.com/divagr18/qwenputer).
 
 Every logic gate in the FPU is a NOR gate: its output is 1 only when all of its inputs are 0. A NOR gate is one neuron with two kinds of input. A clock neuron excites it with a synapse of weight +242. Each logic input inhibits it with a synapse of weight −242. One synapse of weight 1 moves the voltage by 0.275 mV, so +242 is enough to make the neuron fire by itself.
 
-The clock spike and the input spikes arrive in the same 0.1 ms time step. If no input fires, the clock spike drives the neuron over threshold and it fires: output 1. If any input fires, the inhibition cancels the clock spike and the neuron stays silent: output 0. A spike means 1 and silence means 0.
+The clock neuron and the inputs fire on the phase before the gate's own phase. If no input fires, the clock spike drives the neuron over threshold and it fires: output 1. If any input fires, the inhibition cancels the clock spike and the neuron stays silent: output 0. A spike means 1 and silence means 0.
 
 <p align="center"><img src="docs/fig_nor.png" width="100%"></p>
 <p align="center"><sub>Voltage of one NOR neuron in the simulator for all four input cases. Only A=0, B=0 crosses the threshold.</sub></p>
@@ -59,14 +59,14 @@ The FPU is about 160 lines of Verilog. Yosys, an open-source synthesis tool, tur
 
 1. assigns each gate a phase after all of its inputs,
 2. creates one neuron per gate, with a clock synapse from the ring and an inhibitory synapse from each input,
-3. creates one A/B pair per flip-flop, with set and reset neurons that copy the next value in at the end of the cycle,
+3. creates one A/B pair per flip-flop, with set and reset neurons that write the next value at a fixed phase in each cycle,
 4. builds the RAM, and stores the program by starting each RAM bit in the A or B state.
 
 The result is 83,864 neurons. One RISC-V instruction takes two clock cycles, 1.29 s.
 
 ### The GPU
 
-The GPU renders a first-person view of a 16 × 16 maze. The FPU writes a camera position and angle to it. For each of 32 screen columns, the GPU steps a ray forward through the maze until it hits a wall and records the distance, up to 31 steps. It also marks the columns covered by an enemy. All 32 columns run in parallel. The shooter program reads the centre column's distance to decide whether to walk or turn, and writes where to draw the enemy.
+The GPU renders a first-person view of a 16 × 16 maze. The FPU writes a camera position and angle to it. For each of 32 screen columns, the GPU steps a ray forward through the maze until it hits a wall and records the distance, up to 31 steps. It also marks the columns covered by an enemy. All 32 columns run in parallel. The GPU adds 102,517 neurons. The shooter program walks forward while the centre column's distance is more than 6 steps, turns toward the side whose DNa02 fired more, and shoots when DNp01 fires.
 
 ### Wiring it into the fly
 
