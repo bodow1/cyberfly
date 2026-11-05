@@ -1,0 +1,9 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "cyberfly: a RISC-V computer compiled into the fruit fly connectome"
+authors:
+  - alias: bodow1
+repository-code: "https://github.com/bodow1/cyberfly"
+license: MIT
+version: 0.1.0
+date-released: 2026-11-05
