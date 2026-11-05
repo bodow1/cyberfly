@@ -40,7 +40,7 @@ def train(shuffle: bool, trials: int = 120):
     for t in range(trials):
         k = int(rng.integers(0, 150))
         spikes = circuit.look(F[k], t, explore_hz=2.0)
-        pays = rng.random() < 0.5 if shuffle else y[k] == 0
+        pays = rng.random() < 0.3 if shuffle else y[k] == 0
         circuit.reinforce(spikes, float(pays))
     return before, circuit.call_rate(test), circuit.call_rate(F[150:][y[150:] == 1])
 
