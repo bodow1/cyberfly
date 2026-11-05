@@ -12,12 +12,13 @@ from cyberfly.raycaster import Raycaster
 
 S = 2
 WIDTH, HEIGHT = 1600, 500
+OUT_SIZE = (1280, 400)
 GROUND = (11, 12, 14)
 DEEP = (4, 5, 6)
 GRID = (17, 19, 23)
 LINE = (40, 43, 49)
 OFF = (30, 33, 38)
-FAR = (46, 52, 62)
+FAR = (78, 86, 98)
 NEAR = (214, 218, 224)
 FG = (236, 232, 225)
 FG2 = (150, 156, 164)
@@ -27,7 +28,7 @@ ACCENT_DIM = (120, 46, 36)
 FRAMES = 60
 FOLLOW_STEPS = 98
 STEPS_PER_FRAME = 300
-BRAIN_BOX = (40, 140, 780, 290)
+BRAIN_BOX = (40, 150, 780, 270)
 TALKS_TO = ["LC4", "LC10c-1", "LC10c-2", "DNa02", "DNp01"]
 
 MONO, DISPLAY = sys.argv[1], sys.argv[2]
@@ -42,18 +43,19 @@ def replay(program):
     iss = ISS(program, gpu=gpu)
     resets = []
     last = 0
-    while len(resets) < 3:
+    while len(resets) < 2:
+        assert not iss.halted
         iss.step()
         n = bin(gpu.demon).count("1")
         if n and last and n < last - 4:
             resets.append(iss.steps)
         last = n or last
     iss, gpu = ISS(program, gpu=(g := Raycaster())), g
-    iss.run(resets[1])
-    span = (resets[2] - resets[1]) / FRAMES
+    iss.run(resets[0])
+    span = (resets[1] - resets[0]) / FRAMES
     states = []
     for f in range(FRAMES):
-        iss.run(resets[1] + round((f + 1) * span))
+        iss.run(resets[0] + round((f + 1) * span))
         states.append(dict(r=list(iss.r), mem=list(iss.mem), pc=iss.pc, io=iss.io_out[-1], cam=gpu.cam,
                            dist=list(gpu.dist), demon=gpu.demon))
     return states
@@ -113,8 +115,7 @@ class BrainView:
         np.add.at(acc, (iy, ix), 1)
         zn = 1 - (z - np.percentile(z, 2)) / (np.percentile(z, 98) - np.percentile(z, 2))
         np.add.at(depth, (iy, ix), np.clip(zn, 0, 1))
-        acc = np.asarray(Image.fromarray(acc.astype(np.float32)).filter(ImageFilter.GaussianBlur(1.1)))
-        depth = np.asarray(Image.fromarray(depth.astype(np.float32)).filter(ImageFilter.GaussianBlur(1.1)))
+        acc, depth = smooth(acc), smooth(depth)
         near = np.where(acc > 1e-3, depth / np.maximum(acc, 1e-3), 0)
         dens = np.clip(np.log1p(acc * 3) / np.log1p(np.percentile(acc[acc > 0.05], 99.5) * 3), 0, 1) ** 0.85
         mask = Image.fromarray((acc > 0.08).astype(np.uint8) * 255)
@@ -122,9 +123,9 @@ class BrainView:
         body = np.asarray(mask.filter(ImageFilter.MaxFilter(5)).filter(ImageFilter.GaussianBlur(3 * S)), np.float32) / 255
         rim = np.clip(1 - np.abs(body - 0.5) * 6, 0, 1) * (body > 0.05)
         self.ground = np.clip(soft * 1.6, 0, 1)[..., None]
-        shade = (np.array(FAR) + (np.array(NEAR) - np.array(FAR)) * near[..., None] ** 1.3)
+        shade = (np.array(FAR) + (np.array(NEAR) - np.array(FAR)) * near[..., None] ** 0.8)
         self.color = shade
-        self.alpha = np.clip(dens * (0.35 + 0.65 * near), 0, 1)[..., None]
+        self.alpha = np.clip(dens * (0.6 + 0.6 * near), 0, 1)[..., None]
         self.rim = (rim * 0.45)[..., None]
         lit = a.cell_type.isin(TALKS_TO).to_numpy()
         self.lit = np.stack([px[lit], py[lit]], 1)
@@ -133,6 +134,12 @@ class BrainView:
         img = img * (1 - self.ground) + np.array(DEEP) * self.ground
         img = img * (1 - self.rim) + np.array(FG3) * self.rim
         return img * (1 - self.alpha) + self.color * self.alpha
+
+
+def smooth(a: np.ndarray) -> np.ndarray:
+    k = np.array([1, 4, 6, 4, 1], np.float64) / 16
+    a = np.apply_along_axis(lambda r: np.convolve(r, k, "same"), 1, a)
+    return np.apply_along_axis(lambda r: np.convolve(r, k, "same"), 0, a)
 
 
 def glow(points, size, radius):
@@ -217,10 +224,10 @@ def main(out: Path):
         d = ImageDraw.Draw(img)
         for u, v in pts:
             d.ellipse((u - 1.6 * S, v - 1.6 * S, u + 1.6 * S, v + 1.6 * S), fill=(255, 150, 120))
-        frames.append(img.resize((WIDTH, HEIGHT), Image.LANCZOS))
-    sample = Image.new("RGB", (WIDTH, HEIGHT * 2))
+        frames.append(img.resize(OUT_SIZE, Image.LANCZOS))
+    sample = Image.new("RGB", (OUT_SIZE[0], OUT_SIZE[1] * 2))
     sample.paste(frames[0], (0, 0))
-    sample.paste(frames[FRAMES // 2], (0, HEIGHT))
+    sample.paste(frames[FRAMES // 2], (0, OUT_SIZE[1]))
     palette = sample.quantize(255, method=Image.Quantize.MEDIANCUT)
     frames = [f.quantize(palette=palette, dither=Image.Dither.NONE) for f in frames]
     frames[0].save(out, save_all=True, append_images=frames[1:], duration=70, loop=0, optimize=False)

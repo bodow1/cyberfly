@@ -44,6 +44,10 @@ Sim *sim_new(int32_t n, const int64_t *indptr, const int32_t *post, const float 
 
 int64_t sim_time(const Sim *s) { return s->t; }
 
+void sim_voltage(const Sim *s, int32_t m, const int32_t *ids, double *out) {
+  for (int32_t k = 0; k < m; k++) out[k] = s->v[ids[k]];
+}
+
 void sim_reset(Sim *s) {
   for (int32_t i = 0; i < s->n; i++) { s->v[i] = s->v0; s->g[i] = 0; s->last[i] = -1000000000; s->active[i] = 0; }
   for (int k = 0; k <= s->delay; k++) s->ring_n[k] = 0;

@@ -28,6 +28,7 @@ def _library() -> C.CDLL:
     lib.sim_time.restype = C.c_int64
     lib.sim_time.argtypes = [C.c_void_p]
     lib.sim_reset.argtypes = [C.c_void_p]
+    lib.sim_voltage.argtypes = [C.c_void_p, C.c_int32, C.c_void_p, C.c_void_p]
     return lib
 
 
@@ -54,6 +55,12 @@ class Sim:
     @property
     def t(self) -> int:
         return self.lib.sim_time(self.h)
+
+    def voltage(self, ids) -> np.ndarray:
+        ids = np.ascontiguousarray(ids, np.int32)
+        out = np.empty(len(ids), np.float64)
+        self.lib.sim_voltage(self.h, len(ids), ids.ctypes.data, out.ctypes.data)
+        return out
 
     def reset(self):
         self.lib.sim_reset(self.h)
